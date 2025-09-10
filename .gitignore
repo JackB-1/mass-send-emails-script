@@ -8,5 +8,4 @@ email-configs/
 # Node modules
 node_modules/
 
-# dotenv environment variables file
-.env
+public/images/*

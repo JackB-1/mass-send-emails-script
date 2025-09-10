@@ -1,0 +1,12 @@
+# Environment variables
+.env*
+
+# Email configurations (contains sensitive data)
+email-configs/
+!email-configs/example-email.js
+
+# Node modules
+node_modules/
+
+# dotenv environment variables file
+.env

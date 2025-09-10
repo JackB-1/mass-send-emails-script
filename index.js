@@ -22,6 +22,9 @@ let EMAIL_CONFIG;
 if (EMAIL_CONFIG_NAME === 'finnish-email') {
     const { EMAIL_CONFIG: config } = await import('./email-configs/finnish-email.js');
     EMAIL_CONFIG = config;
+} else if (EMAIL_CONFIG_NAME === 'finnish-email-test') {
+    const { EMAIL_CONFIG: config } = await import('./email-configs/finnish-email-test.js');
+    EMAIL_CONFIG = config;
 } else if (EMAIL_CONFIG_NAME === 'english-email') {
     const { EMAIL_CONFIG: config } = await import('./email-configs/english-email.js');
     EMAIL_CONFIG = config;
@@ -99,13 +102,20 @@ app.post('/api/send', async (req, res) => {
 			const personalizedSubject = EMAIL_SUBJECT.replace(/\{\{RECIPIENT_NAME\}\}/g, capitalizedName);
 			const personalizedHtml = EMAIL_HTML.replace(/\{\{RECIPIENT_NAME\}\}/g, capitalizedName);
 			
+			// Handle multiple emails per recipient (comma-separated)
+			const emailList = recipient.email.split(',').map(email => email.trim());
+			
 			const info = await transporter.sendMail({
 				from: `"${SENDER_NAME}" <${SENDER_EMAIL}>`,
-				to: recipient.email,
+				to: emailList, // Send to all emails for this recipient
 				subject: personalizedSubject,
 				html: personalizedHtml
 			});
-			sendResults.push({ recipient: recipient.email, messageId: info.messageId });
+			sendResults.push({ 
+				recipient: recipient.name, 
+				emails: emailList, 
+				messageId: info.messageId 
+			});
 		}
 
 		return res.json({ 

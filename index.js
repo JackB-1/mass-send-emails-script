@@ -94,29 +94,48 @@ app.post('/api/send', async (req, res) => {
 
 	try {
 		const sendResults = [];
+		console.log(`Starting to send emails to ${RECIPIENTS.length} recipients...`);
+		
 		for (const recipient of RECIPIENTS) {
-			// Capitalize first letter of recipient name
-			const capitalizedName = recipient.name.charAt(0).toUpperCase() + recipient.name.slice(1);
-			
-			// Replace placeholder with actual recipient name in both subject and HTML
-			const personalizedSubject = EMAIL_SUBJECT.replace(/\{\{RECIPIENT_NAME\}\}/g, capitalizedName);
-			const personalizedHtml = EMAIL_HTML.replace(/\{\{RECIPIENT_NAME\}\}/g, capitalizedName);
-			
-			// Handle multiple emails per recipient (comma-separated)
-			const emailList = recipient.email.split(',').map(email => email.trim());
-			
-			const info = await transporter.sendMail({
-				from: `"${SENDER_NAME}" <${SENDER_EMAIL}>`,
-				to: emailList, // Send to all emails for this recipient
-				subject: personalizedSubject,
-				html: personalizedHtml
-			});
-			sendResults.push({ 
-				recipient: recipient.name, 
-				emails: emailList, 
-				messageId: info.messageId 
-			});
+			try {
+				console.log(`Sending email to: ${recipient.name} (${recipient.email})`);
+				
+				// Capitalize first letter of recipient name
+				const capitalizedName = recipient.name.charAt(0).toUpperCase() + recipient.name.slice(1);
+				
+				// Replace placeholder with actual recipient name in both subject and HTML
+				const personalizedSubject = EMAIL_SUBJECT.replace(/\{\{RECIPIENT_NAME\}\}/g, capitalizedName);
+				const personalizedHtml = EMAIL_HTML.replace(/\{\{RECIPIENT_NAME\}\}/g, capitalizedName);
+				
+				// Handle multiple emails per recipient (comma-separated)
+				const emailList = recipient.email.split(',').map(email => email.trim());
+				
+				const info = await transporter.sendMail({
+					from: `"${SENDER_NAME}" <${SENDER_EMAIL}>`,
+					to: emailList, // Send to all emails for this recipient
+					subject: personalizedSubject,
+					html: personalizedHtml
+				});
+				
+				console.log(`✓ Email sent successfully to: ${recipient.name} (Message ID: ${info.messageId})`);
+				
+				sendResults.push({ 
+					recipient: recipient.name, 
+					emails: emailList, 
+					messageId: info.messageId 
+				});
+			} catch (recipientError) {
+				console.error(`❌ Failed to send email to: ${recipient.name} (${recipient.email}) - Error: ${recipientError.message}`);
+				// Continue with next recipient instead of stopping the entire process
+				sendResults.push({ 
+					recipient: recipient.name, 
+					emails: recipient.email.split(',').map(email => email.trim()), 
+					error: recipientError.message 
+				});
+			}
 		}
+		
+		console.log(`All emails sent successfully! Total: ${sendResults.length} recipients`);
 
 		return res.json({ 
 			success: true, 
@@ -125,6 +144,7 @@ app.post('/api/send', async (req, res) => {
 			configName: EMAIL_CONFIG_NAME
 		});
 	} catch (error) {
+		console.error(`❌ Error sending email: ${error.message}`);
 		return res.status(500).json({ success: false, error: String(error) });
 	}
 });
